@@ -4,8 +4,8 @@ AWSKRUG 밋업 참가자들이 참가비 환불을 신청할 수 있는 웹 애�
 
 ## 기능
 
-- 소모임 선택
-- 환불 신청자 정보 입력 (이름, 소속, 이메일, 휴대폰번호)
+- 소모임 선택 (URL 파라미터로 사전 선택 가능)
+- 환불 신청자 정보 입력 (이름, 은행 이름, 계좌번호, 메모)
 - Slack 채널로 환불 신청 알림 전송
 
 ## 기술 스택
@@ -70,13 +70,27 @@ npm start
 export const SUBGROUPS: Subgroup[] = [
   {
     id: 'aiengineering',
-    name: 'AIEngineering 소모임',
+    name: 'AI Engineering 소모임',
     channelId: 'C07JVMT255E',
+    contactId: 'nalbam',        // 담당자 Slack ID (선택)
+  },
+  {
+    id: 'container',
+    name: 'Container 소모임',
+    channelId: 'GE94HAW4V',
+    contactId: 'mosesyoon',
+  },
+  {
+    id: 'kiro',
+    name: 'Kiro 소모임',
+    channelId: 'C0A4R4LLEBH',
+    contactId: 'yanso',
   },
   {
     id: 'sandbox',
     name: 'Sandbox 소모임',
-    channelId: 'C3Q23GRK7',
+    channelId: 'C07HZRYBNRG',
+    contactId: 'nalbam',
   },
   // 새 소모임 추가...
 ];
@@ -85,14 +99,27 @@ export const SUBGROUPS: Subgroup[] = [
 ## 사용 방법
 
 1. 웹사이트 접속
+   - 직접 접속: `https://your-domain.com`
+   - URL 파라미터로 소모임 사전 선택: `https://your-domain.com/?subgroup=aiengineering`
 2. 소모임 선택
 3. 신청자 정보 입력
-   - 이름
-   - 소속
-   - 이메일
-   - 휴대폰번호 (010-0000-0000 형식)
-4. "환불 신청" 버튼 클릭
+   - 신청자 이름 (입금하신 이름)
+   - 은행 이름
+   - 계좌번호 (숫자만 입력)
+   - 메모 (선택사항)
+4. "환불 신청하기" 버튼 클릭
 5. 해당 소모임의 Slack 채널로 환불 신청 알림이 전송됩니다
+
+## URL 파라미터
+
+소모임을 미리 선택한 상태로 페이지에 접근할 수 있습니다:
+
+| 소모임 | URL |
+|--------|-----|
+| AI Engineering | `?subgroup=aiengineering` |
+| Container | `?subgroup=container` |
+| Kiro | `?subgroup=kiro` |
+| Sandbox | `?subgroup=sandbox` |
 
 ## 라이선스
 

@@ -44,26 +44,27 @@ app/
   layout.tsx              # 루트 레이아웃
   globals.css             # 글로벌 스타일
 lib/
-  config.ts               # 전역 설정 (SUBGROUPS, SLACK_BOT_TOKEN)
-  utils.ts                # 공유 유틸리티 함수 (parseSubgroups, sanitizeForSlack)
+  config.ts               # 전역 설정 (SUBGROUPS, getSlackBotToken, validateConfig)
+  utils.ts                # 공유 유틸리티 함수 (Subgroup 타입, parseSubgroups, sanitizeForSlack)
 ```
 
 ### 데이터 흐름
 
 1. **프론트엔드 (app/page.tsx)**:
    - 클라이언트 컴포넌트가 마운트 시 `/api/subgroups`에서 소모임 목록 조회
+   - URL 파라미터(`?subgroup=id`)로 소모임 사전 선택 지원
    - 사용자가 유효성 검증과 함께 환불 신청 폼 작성
-   - 휴대폰번호는 `010-0000-0000` 형식으로 자동 포맷팅
+   - 계좌번호는 숫자만 허용 (하이픈 제거 후 검증)
    - 폼 제출 시 `/api/refund`로 POST 요청
 
 2. **백엔드 API 라우트**:
    - `/api/subgroups`: 전역 설정(`lib/config.ts`)에서 소모임 목록 반환
    - `/api/refund`: 요청 유효성 검증 후 해당 채널로 포맷팅된 Slack 메시지 전송
-   - 두 라우트 모두 전역 `SUBGROUPS`, `SLACK_BOT_TOKEN` 상수 사용
+   - `SUBGROUPS` 상수와 `getSlackBotToken()` 함수 사용
 
 3. **Slack 연동**:
    - Slack Block Kit을 사용한 풍부한 메시지 포맷팅
-   - 메시지 포함 정보: 소모임, 이름, 소속, 이메일, 휴대폰, 신청일시
+   - 메시지 포함 정보: 소모임, 신청자 이름, 은행이름, 계좌번호, 신청일시, 메모(선택)
    - `chat:write` 봇 권한 필요
 
 ## 환경 변수 설정
@@ -83,20 +84,39 @@ SLACK_BOT_TOKEN=xoxb-your-token-here
 export const SUBGROUPS: Subgroup[] = [
   {
     id: 'aiengineering',
-    name: 'AIEngineering 소모임',
+    name: 'AI Engineering 소모임',
     channelId: 'C07JVMT255E',
+    contactId: 'nalbam',
   },
   {
     id: 'container',
     name: 'Container 소모임',
     channelId: 'GE94HAW4V',
+    contactId: 'mosesyoon',
+  },
+  {
+    id: 'kiro',
+    name: 'Kiro 소모임',
+    channelId: 'C0A4R4LLEBH',
+    contactId: 'yanso',
   },
   {
     id: 'sandbox',
     name: 'Sandbox 소모임',
-    channelId: 'C3Q23GRK7',
+    channelId: 'C07HZRYBNRG',
+    contactId: 'nalbam',
   },
 ];
+```
+
+**Subgroup 인터페이스** (`lib/utils.ts`):
+```typescript
+export interface Subgroup {
+  id: string;
+  name: string;
+  channelId: string;
+  contactId?: string;  // 담당자 Slack ID (선택)
+}
 ```
 
 ### 전역 설정 사용 방법
@@ -104,7 +124,10 @@ export const SUBGROUPS: Subgroup[] = [
 API 라우트 및 서버 컴포넌트에서 전역 설정을 임포트하여 사용:
 
 ```typescript
-import { SUBGROUPS, SLACK_BOT_TOKEN } from '@/lib/config';
+import { SUBGROUPS, getSlackBotToken } from '@/lib/config';
+
+// Slack 토큰은 런타임에 함수 호출로 가져옴
+const slackToken = getSlackBotToken();
 ```
 
 **장점**:
@@ -123,13 +146,13 @@ import { SUBGROUPS, SLACK_BOT_TOKEN } from '@/lib/config';
 ### 입력 유효성 검증 및 새니타이징
 
 **클라이언트 측 검증** (app/page.tsx):
-- 이메일 정규식: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
-- 휴대폰 정규식: `/^010-\d{4}-\d{4}$/`
-- 사용자 입력 시 휴대폰번호 자동 포맷팅
+- 필수 필드: 소모임, 신청자 이름, 은행 이름, 계좌번호
+- 계좌번호: 숫자만 허용 (하이픈 제거 후 `/^\d+$/` 검증)
+- 메모는 선택 사항
 
 **서버 측 검증** (app/api/refund/route.ts):
 - 모든 입력값 재검증 (클라이언트를 신뢰하지 않음)
-- 일관성을 위해 동일한 휴대폰 정규식 사용
+- 계좌번호 형식 검증 (숫자만 허용)
 - 모든 텍스트 입력은 Slack 전송 전 `sanitizeForSlack()` 처리
 
 **Slack 새니타이징** (lib/utils.ts):
@@ -171,6 +194,7 @@ export const SUBGROUPS: Subgroup[] = [
     id: 'new-subgroup',           // 고유 ID (URL 친화적)
     name: '새 소모임',             // 화면에 표시될 이름
     channelId: 'C12345678',       // Slack 채널 ID
+    contactId: 'slack-username',  // 담당자 Slack ID (선택)
   },
 ];
 ```
@@ -180,6 +204,20 @@ export const SUBGROUPS: Subgroup[] = [
 2. 채널에 봇 초대
 3. `lib/config.ts` 파일 수정
 4. 변경사항 커밋 및 배포
+
+## URL 파라미터
+
+소모임을 미리 선택한 상태로 페이지 접근 가능:
+
+```
+https://your-domain.com/?subgroup=aiengineering
+https://your-domain.com/?subgroup=container
+https://your-domain.com/?subgroup=kiro
+https://your-domain.com/?subgroup=sandbox
+```
+
+- `subgroup` 파라미터에 소모임 ID를 지정하면 해당 소모임이 자동 선택됨
+- 유효하지 않은 ID는 무시되고 사용자가 직접 선택해야 함
 
 ## 코드 스타일 규칙
 
