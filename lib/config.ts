@@ -52,6 +52,13 @@ export function getSlackBotToken(): string {
 }
 
 /**
+ * Slack Signing Secret (이모지 리액션 이벤트 서명 검증용)
+ */
+export function getSlackSigningSecret(): string {
+  return process.env.SLACK_SIGNING_SECRET || '';
+}
+
+/**
  * 설정 유효성 검증
  */
 export function validateConfig(): { isValid: boolean; errors: string[] } {

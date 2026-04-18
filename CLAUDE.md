@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-AWSKRUG 환불 신청 시스템 - AWSKRUG 밋업 참가자들이 참가비 환불을 신청할 수 있는 Next.js 웹 애플리케이션입니다. 사용자가 환불 신청 정보를 입력하면 선택한 소모임의 Slack 채널로 알림이 전송됩니다.
+AWSKRUG 환불 신청 시스템 - AWSKRUG 밋업 참가자들이 참가비 환불을 신청할 수 있는 Next.js 웹 애플리케이션입니다. 사용자가 환불 신청 정보를 입력하면 선택한 소모임의 Slack 채널로 알림이 전송됩니다. 담당자가 Slack 메시지에 `:refund-done:` 리액션을 달면 `/api/slack/events` 웹훅이 원본 메시지를 갱신하여 처리 완료 상태를 기록합니다.
 
 ## 개발 명령어
 
@@ -38,14 +38,17 @@ npm run lint
 ```
 app/
   api/
-    refund/route.ts       # 환불 신청 제출 POST 엔드포인트
-    subgroups/route.ts    # 사용 가능한 소모임 조회 GET 엔드포인트
-  page.tsx                # 메인 환불 신청 폼 페이지 (클라이언트 컴포넌트)
-  layout.tsx              # 루트 레이아웃
-  globals.css             # 글로벌 스타일
+    refund/route.ts           # 환불 신청 제출 POST 엔드포인트
+    subgroups/route.ts        # 사용 가능한 소모임 조회 GET 엔드포인트
+    slack/events/route.ts     # Slack 이벤트 수신 (reaction_added: refund-done)
+  page.tsx                    # 메인 환불 신청 폼 페이지 (클라이언트 컴포넌트)
+  layout.tsx                  # 루트 레이아웃
+  globals.css                 # 글로벌 스타일
 lib/
-  config.ts               # 전역 설정 (SUBGROUPS, getSlackBotToken, validateConfig)
-  utils.ts                # 공유 유틸리티 함수 (Subgroup 타입, parseSubgroups, sanitizeForSlack)
+  config.ts                   # 전역 설정 (SUBGROUPS, getSlackBotToken, getSlackSigningSecret)
+  utils.ts                    # 공유 유틸리티 (Subgroup 타입, parseSubgroups, sanitizeForSlack)
+  slack-signature.ts          # Slack 요청 서명 검증 (HMAC-SHA256, 5분 skew)
+  refund-done.ts              # :refund-done: 리액션 처리 (계좌 마스킹 + 환불일시 + 처리자 기록)
 ```
 
 ### 데이터 흐름
@@ -65,7 +68,15 @@ lib/
 3. **Slack 연동**:
    - Slack Block Kit을 사용한 풍부한 메시지 포맷팅
    - 메시지 포함 정보: 소모임, 신청자 이름, 은행이름, 계좌번호, 신청일시, 메모(선택)
-   - `chat:write` 봇 권한 필요
+   - Bot 권한: `chat:write`, `channels:history`, `groups:history`, `reactions:read`
+
+4. **환불 처리 (Slack 리액션)**:
+   - Event Subscriptions Request URL: `https://<domain>/api/slack/events`
+   - Subscribed bot event: `reaction_added`
+   - `app/api/slack/events/route.ts`는 서명 검증 후 `reaction === 'refund-done'`인 메시지 리액션만 `processRefundDone`으로 전달
+   - `lib/refund-done.ts`가 `conversations.history` + `chat.update`로 메시지 갱신:
+     계좌번호 마스킹, `*환불일시:*` 추가, header 🔔→✅, context를 처리자 표시로 교체
+     fallback text는 `환불 신청이 처리되었습니다.`로 고정
 
 ## 환경 변수 설정
 
@@ -74,6 +85,9 @@ lib/
 ```env
 # Slack Bot Token (xoxb-...)
 SLACK_BOT_TOKEN=xoxb-your-token-here
+
+# Slack Signing Secret (reaction_added 서명 검증)
+SLACK_SIGNING_SECRET=your-signing-secret-here
 ```
 
 ## 소모임 설정 (Constants Configuration)
@@ -178,10 +192,14 @@ const slackToken = getSlackBotToken();
 
 새로운 Slack 연동 설정 시:
 1. Slack App 생성 및 Bot User 추가
-2. `chat:write` OAuth 스코프 추가
-3. 워크스페이스에 앱 설치
-4. 대상 채널에 봇 초대
-5. Bot Token (xoxb-...)을 `.env` 파일의 `SLACK_BOT_TOKEN`에 설정
+2. OAuth 스코프 추가: `chat:write`, `channels:history`, `groups:history`, `reactions:read`
+3. Event Subscriptions 활성화
+   - Request URL: `https://<your-domain>/api/slack/events`
+   - Subscribe to bot events: `reaction_added`
+4. 워크스페이스에 앱 설치
+5. 대상 채널에 봇 초대
+6. Bot Token(`xoxb-...`)을 `SLACK_BOT_TOKEN`에, Signing Secret을 `SLACK_SIGNING_SECRET`에 설정
+
 
 ## 새 소모임 추가하기
 
