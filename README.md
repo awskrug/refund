@@ -112,18 +112,6 @@ export const SUBGROUPS: Subgroup[] = [
     contactId: 'nalbam',        // 담당자 Slack ID (선택)
   },
   {
-    id: 'container',
-    name: 'Container 소모임',
-    channelId: 'GE94HAW4V',
-    contactId: 'mosesyoon',
-  },
-  {
-    id: 'kiro',
-    name: 'Kiro 소모임',
-    channelId: 'C0A4R4LLEBH',
-    contactId: 'yanso',
-  },
-  {
     id: 'sandbox',
     name: 'Sandbox 소모임',
     channelId: 'C07HZRYBNRG',
