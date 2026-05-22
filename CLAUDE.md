@@ -96,7 +96,7 @@ SLACK_SIGNING_SECRET=your-signing-secret-here
 
 ## 소모임 설정 (Constants Configuration)
 
-소모임 목록은 `lib/config.ts`의 `SUBGROUPS` 상수에 정의되어 있습니다 (현재 `aiengineering`, `container`, `kiro`, `platform`, `devops`, `sandbox`). 새 항목 추가 시 `lib/config.ts`를 직접 편집하거나 `SUBGROUPS_JSON` 환경 변수를 사용하세요.
+소모임 목록은 `lib/config.ts`의 `SUBGROUPS` 상수에 정의되어 있습니다 (현재 `sandbox` 1개; 배포 환경에서는 `SUBGROUPS_JSON` 환경 변수로 덮어쓸 수 있음). 새 항목 추가 시 `lib/config.ts`를 직접 편집하거나 `SUBGROUPS_JSON` 환경 변수를 사용하세요.
 
 **Subgroup 인터페이스** (`lib/utils.ts`):
 ```typescript
@@ -214,7 +214,7 @@ const slackToken = getSlackBotToken();
 https://refund.awskr.org/?subgroup=<id>
 ```
 
-- `subgroup` 파라미터에 `SUBGROUPS`의 `id`(`aiengineering`, `container`, `kiro`, `platform`, `devops`, `sandbox` 등)를 지정하면 해당 소모임이 자동 선택됨
+- `subgroup` 파라미터에 `getSubgroups()` 결과의 `id`(코드 상수 기본값: `sandbox`)를 지정하면 해당 소모임이 자동 선택됨
 - 유효하지 않은 ID는 무시되고 사용자가 직접 선택해야 함
 
 ## 코드 스타일 규칙
