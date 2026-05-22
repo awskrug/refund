@@ -121,7 +121,7 @@ export const SUBGROUPS: Subgroup[] = [
 
 1. 웹사이트 접속
    - 직접 접속: `https://refund.awskr.org`
-   - URL 파라미터로 소모임 사전 선택: `https://refund.awskr.org/?subgroup=aiengineering`
+   - URL 파라미터로 소모임 사전 선택: `https://refund.awskr.org/?subgroup=sandbox`
 2. 소모임 선택
 3. 신청자 정보 입력
    - 신청자 이름 (입금하신 이름)
@@ -137,12 +137,9 @@ export const SUBGROUPS: Subgroup[] = [
 
 | 소모임 | URL |
 |--------|-----|
-| AI Engineering | `?subgroup=aiengineering` |
-| Container | `?subgroup=container` |
-| Kiro | `?subgroup=kiro` |
-| Platform Engineering | `?subgroup=platform` |
-| DevOps | `?subgroup=devops` |
 | Sandbox | `?subgroup=sandbox` |
+
+> 코드 상수 `SUBGROUPS`의 기본값은 `sandbox` 1개입니다. 배포 환경에서 `SUBGROUPS_JSON`으로 덮어쓴 경우 거기에 정의된 모든 `id`를 URL 파라미터로 사용할 수 있습니다.
 
 ## 라이선스
 
